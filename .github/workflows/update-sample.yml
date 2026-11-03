@@ -1,0 +1,53 @@
+name: Update fictional example JSON
+on:
+  workflow_dispatch:
+    inputs:
+      sample_json:
+        description: 'Fictional examples only: paste the full document from data/example-offers.json with your edits.'
+        required: true
+        type: string
+      deploy_pages:
+        description: 'Deploy after committing (enable Pages in Settings first).'
+        required: true
+        type: boolean
+        default: false
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: example-json-update
+  cancel-in-progress: false
+jobs:
+  update:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate and update JSON
+        env:
+          SAMPLE_JSON: ${{ inputs.sample_json }}
+        run: npm run update:sample
+      - run: npm run check
+      - run: npm test
+      - name: Commit changed example file
+        run: |
+          if git diff --quiet -- data/example-offers.json; then
+            echo "No example changes to commit."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -- data/example-offers.json
+            git commit -m "chore: update fictional example offers"
+            git push origin HEAD:main
+          fi
+      # GITHUB_TOKEN pushes do not trigger other push workflows. Dispatch explicitly.
+      - name: Request Pages deployment
+        if: inputs.deploy_pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run pages.yml --ref main

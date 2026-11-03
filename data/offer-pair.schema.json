@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://johnnelson858.github.io/AD400-2026-JOC/data/offer-pair.schema.json",
+  "title": "Two annual USD offers",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "offers"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "offers": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "prefixItems": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/offer"
+            },
+            {
+              "properties": {
+                "id": {
+                  "const": "a"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/offer"
+            },
+            {
+              "properties": {
+                "id": {
+                  "const": "b"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "items": false
+    }
+  },
+  "$defs": {
+    "offer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "company",
+        "role",
+        "baseSalary",
+        "currency",
+        "salaryPeriod"
+      ],
+      "properties": {
+        "id": {
+          "enum": [
+            "a",
+            "b"
+          ]
+        },
+        "company": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "pattern": "\\S"
+        },
+        "baseSalary": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 90071992547409.9,
+          "multipleOf": 0.01
+        },
+        "currency": {
+          "const": "USD"
+        },
+        "salaryPeriod": {
+          "const": "year"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "offers": [
+    {
+      "id": "a",
+      "company": "Tech Startup (fictional)",
+      "role": "Software Engineer",
+      "baseSalary": 120000,
+      "currency": "USD",
+      "salaryPeriod": "year"
+    },
+    {
+      "id": "b",
+      "company": "Established Corporation (fictional)",
+      "role": "Software Engineer",
+      "baseSalary": 135000,
+      "currency": "USD",
+      "salaryPeriod": "year"
+    }
+  ]
+}
