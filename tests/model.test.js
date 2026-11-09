@@ -46,6 +46,27 @@ test('zero and two decimal places are accepted, empty is not zero', () => {
   assert.equal(validateOffers(offers).valid,true);
   assert.equal(normalizeOffers(offers)[0].baseSalary,0);
 });
+test('both offers use the same required-field and salary rules', () => {
+  for (const id of ['a', 'b']) {
+    const missingSalary = good();
+    delete missingSalary[id === 'a' ? 0 : 1].baseSalary;
+    const salaryResult = validateOffers(missingSalary);
+    assert.equal(salaryResult.valid, false);
+    assert.ok(salaryResult.errors.some(error => error.id === id && error.field === 'baseSalary'));
+
+    const missingCompany = good();
+    delete missingCompany[id === 'a' ? 0 : 1].company;
+    const companyResult = validateOffers(missingCompany);
+    assert.equal(companyResult.valid, false);
+    assert.ok(companyResult.errors.some(error => error.id === id && error.field === 'company'));
+  }
+});
+test('optional blank fields do not affect validation', () => {
+  const offers = good();
+  offers[0].bonus = '';
+  offers[1].equity = '   ';
+  assert.equal(validateOffers(offers).valid, true);
+});
 test('whitespace required labels fail and retain editable values', () => {
   const offers=good();offers[0].company='   ';offers[1].role='';
   assert.equal(validateOffers(offers).errors.length,2);
