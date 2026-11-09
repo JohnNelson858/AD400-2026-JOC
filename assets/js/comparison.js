@@ -1,5 +1,7 @@
 // Starter handoff for JOC-16 / JOC-20. No difference calculator or overall ranking yet.
 // Accepts normalized records, never mutates them, and renders untrusted text safely.
+const displayValue = (value, format = String) => value == null || (typeof value === 'string' && !value.trim()) ? 'Not provided' : format(value);
+
 export function renderComparison(offers, container) {
   const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
   const grid = document.createElement('div');
@@ -9,9 +11,9 @@ export function renderComparison(offers, container) {
     card.className = 'preview-card';
     const entries = [
       ['p', 'preview-label', `Offer ${offer.id.toUpperCase()} · annual base salary`],
-      ['p', 'salary', currency.format(offer.baseSalary)],
-      ['h3', '', offer.company],
-      ['p', '', offer.role],
+      ['p', 'salary', displayValue(offer.baseSalary, value => currency.format(value))],
+      ['h3', '', displayValue(offer.company)],
+      ['p', '', displayValue(offer.role)],
       ['p', 'preview-label', 'USD / year']
     ];
     for (const [tag, className, text] of entries) {
