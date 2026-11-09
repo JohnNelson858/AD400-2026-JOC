@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createOfferStore, validateSampleDocument } from '../assets/js/model.js';
 import { validateOffers, normalizeOffers } from '../assets/js/validation.js';
+import { renderComparison } from '../assets/js/comparison.js';
 const good = () => [{ id:'a', company:' A ', role:' Developer ', baseSalary:'120000', currency:'USD', salaryPeriod:'year' }, { id:'b', company:'B', role:'Engineer', baseSalary:'135000', currency:'USD', salaryPeriod:'year' }];
 test('editing one offer preserves the other, with defensive snapshots', () => {
   const store = createOfferStore();
@@ -66,6 +67,34 @@ test('optional blank fields do not affect validation', () => {
   offers[0].bonus = '';
   offers[1].equity = '   ';
   assert.equal(validateOffers(offers).valid, true);
+});
+test('comparison displays missing details consistently without treating zero as missing', () => {
+  const elements = [];
+  globalThis.document = {
+    createElement(tag) {
+      const element = {
+        tag,
+        children: [],
+        append(child) { this.children.push(child); },
+        replaceChildren(child) { this.children = [child]; }
+      };
+      elements.push(element);
+      return element;
+    }
+  };
+  try {
+    const container = { replaceChildren(child) { this.children = [child]; } };
+    renderComparison([
+      { id: 'a', company: '', role: null, baseSalary: undefined },
+      { id: 'b', company: 'B', role: 'Engineer', baseSalary: 0 }
+    ], container);
+    const text = elements.map(element => element.textContent).filter(Boolean);
+    assert.equal(text.filter(value => value === 'Not provided').length, 3);
+    assert.ok(text.includes('$0.00'));
+    assert.ok(!text.includes('undefined'));
+  } finally {
+    delete globalThis.document;
+  }
 });
 test('whitespace required labels fail and retain editable values', () => {
   const offers=good();offers[0].company='   ';offers[1].role='';
