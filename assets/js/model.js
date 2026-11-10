@@ -1,9 +1,31 @@
 // JOC-14: two independent records, held only in memory. No browser storage or API.
+// JOC-30: extended with healthcare, retirementMatch, and separate vacation, sick, and personal leave fields.
 export const OFFER_IDS = Object.freeze(['a', 'b']);
-export const FIELD_NAMES = Object.freeze(['company', 'role', 'baseSalary']);
+export const FIELD_NAMES = Object.freeze([
+  'company',
+  'role',
+  'baseSalary',
+  'healthcare',
+  'retirementMatch',
+  'vacationLeave',
+  'sickLeave',
+  'personalLeave'
+]);
 
 export function createEmptyOffer(id) {
-  return { id, company: '', role: '', baseSalary: '', currency: 'USD', salaryPeriod: 'year' };
+  return {
+    id,
+    company: '',
+    role: '',
+    baseSalary: '',
+    currency: 'USD',
+    salaryPeriod: 'year',
+    healthcare: '',
+    retirementMatch: '',
+    vacationLeave: '',
+    sickLeave: '',
+    personalLeave: ''
+  };
 }
 
 export function createOfferStore() {
@@ -25,7 +47,19 @@ export function validateSampleDocument(document) {
     throw new Error('Use schemaVersion 1 with exactly two offers.');
   }
   if (Object.keys(document).some(key => !['schemaVersion', 'offers'].includes(key))) throw new Error('Unexpected document property.');
-  const allowed = ['id', 'company', 'role', 'baseSalary', 'currency', 'salaryPeriod'];
+  const allowed = [
+    'id',
+    'company',
+    'role',
+    'baseSalary',
+    'currency',
+    'salaryPeriod',
+    'healthcare',
+    'retirementMatch',
+    'vacationLeave',
+    'sickLeave',
+    'personalLeave'
+  ];
   document.offers.forEach((offer, index) => {
     if (!offer || offer.id !== OFFER_IDS[index] || Object.keys(offer).some(key => !allowed.includes(key))) throw new Error('Offers must be ordered a, b and use the documented fields.');
     if (offer.currency !== 'USD' || offer.salaryPeriod !== 'year') throw new Error('Use annual USD salaries.');
