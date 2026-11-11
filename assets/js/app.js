@@ -65,7 +65,8 @@ form.addEventListener('submit', event => {
     }
     summary.append(heading, list);
     summary.hidden = false;
-    summary.focus();
+    const firstError = result.errors[0];
+    inputFor(firstError.id, firstError.field).focus();
     return;
   }
   const normalized = normalizeOffers(offers);

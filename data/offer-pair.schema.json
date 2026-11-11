@@ -91,6 +91,26 @@
         },
         "salaryPeriod": {
           "const": "year"
+        },
+        "healthcare": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "retirementMatch": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "vacationLeave": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "sickLeave": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "personalLeave": {
+          "type": "string",
+          "maxLength": 100
         }
       }
     }
