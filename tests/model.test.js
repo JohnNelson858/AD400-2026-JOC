@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createOfferStore, validateSampleDocument, OFFER_IDS, FIELD_NAMES } from '../assets/js/model.js';
+import { createOfferStore, validateSampleDocument, OFFER_IDS, FIELD_NAMES, WORK_ARRANGEMENTS } from '../assets/js/model.js';
 import { validateOffers, normalizeOffers } from '../assets/js/validation.js';
 import { renderComparison } from '../assets/js/comparison.js';
 const good = () => [{ id:'a', company:' A ', role:' Developer ', baseSalary:'120000', currency:'USD', salaryPeriod:'year' }, { id:'b', company:'B', role:'Engineer', baseSalary:'135000', currency:'USD', salaryPeriod:'year' }];
@@ -14,7 +14,7 @@ test('each offer card has independent inputs with matching labels and error refe
   for (const [index, id] of OFFER_IDS.entries()) {
     for (const field of FIELD_NAMES) {
       const inputId = `offer-${id}-${field}`;
-      const input = cards[index].match(new RegExp(`<input\\b[^>]*id="${inputId}"[^>]*>`));
+      const input = cards[index].match(new RegExp(`<(?:input|select)\\b[^>]*id="${inputId}"[^>]*>`));
       assert.ok(input, `Missing input in Offer ${id.toUpperCase()}: ${field}`);
       assert.ok(input[0].includes(`name="${id}.${field}"`));
       assert.ok(cards[index].includes(`<label for="${inputId}">`));
@@ -144,4 +144,100 @@ test('fixture follows the shared contract and rejects extra fields or wrong orde
   assert.throws(()=>validateSampleDocument(reversed));
   const blank=structuredClone(sample);blank.offers[0].company=' ';
   assert.throws(()=>validateSampleDocument(blank));
+});
+
+// JOC-32 / JOC-33 / JOC-34 / JOC-35: work arrangement and career growth.
+const fakeDocument = () => ({
+  createElement(tag) {
+    return { tag, children: [], append(...children) { this.children.push(...children); }, replaceChildren(child) { this.children = [child]; } };
+  }
+});
+const workDetail = (card, label) => {
+  const entries = card.children.find(child => child.className === 'work-growth-list').children;
+  const index = entries.findIndex(child => child.tag === 'dt' && child.textContent === label);
+  assert.notEqual(index, -1, `Missing work detail: ${label}`);
+  return entries[index + 1].textContent;
+};
+test('work arrangement offers exactly remote, hybrid, and office plus a blank choice', async () => {
+  assert.deepEqual([...WORK_ARRANGEMENTS], ['remote', 'hybrid', 'office']);
+  const html = await readFile('index.html', 'utf8');
+  for (const id of OFFER_IDS) {
+    const select = html.match(new RegExp(`<select\\b[^>]*id="offer-${id}-workArrangement"[^>]*>([\\s\\S]*?)</select>`));
+    assert.ok(select, `Missing work arrangement select for Offer ${id.toUpperCase()}`);
+    const values = [...select[1].matchAll(/value="([^"]*)"/g)].map(match => match[1]);
+    assert.deepEqual(values, ['', 'remote', 'hybrid', 'office']);
+  }
+});
+test('work and growth fields are stored separately for each offer', () => {
+  const store = createOfferStore();
+  store.updateOffer('a', 'workArrangement', 'remote');
+  store.updateOffer('a', 'careerGrowth', 'Mentorship');
+  store.updateOffer('b', 'workArrangement', 'office');
+  const [a, b] = store.getOffers();
+  assert.equal(a.workArrangement, 'remote');
+  assert.equal(a.careerGrowth, 'Mentorship');
+  assert.equal(b.workArrangement, 'office');
+  assert.equal(b.careerGrowth, '');
+});
+test('blank work and growth details are optional and normalize to empty text', () => {
+  const offers = good();
+  offers[0].location = '   ';
+  offers[0].workArrangement = '';
+  assert.equal(validateOffers(offers).valid, true);
+  const normalized = normalizeOffers(offers);
+  assert.equal(normalized[0].location, '');
+  assert.equal(normalized[1].cultureNotes, '');
+});
+test('an unknown work arrangement is rejected for the right offer', () => {
+  const offers = good();
+  offers[1].workArrangement = 'moon base';
+  const result = validateOffers(offers);
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(error => error.id === 'b' && error.field === 'workArrangement'));
+});
+test('overly long growth and culture notes are rejected', () => {
+  const offers = good();
+  offers[0].careerGrowth = 'x'.repeat(301);
+  offers[1].cultureNotes = 'y'.repeat(301);
+  const result = validateOffers(offers);
+  assert.ok(result.errors.some(error => error.id === 'a' && error.field === 'careerGrowth'));
+  assert.ok(result.errors.some(error => error.id === 'b' && error.field === 'cultureNotes'));
+});
+test('qualitative notes are kept exactly as written after trimming', () => {
+  const offers = good();
+  offers[0].cultureNotes = '  Great team, but long meetings  ';
+  offers[0].overtime = ' Unpaid on-call one week a month ';
+  const [a] = normalizeOffers(offers);
+  assert.equal(a.cultureNotes, 'Great team, but long meetings');
+  assert.equal(a.overtime, 'Unpaid on-call one week a month');
+});
+test('comparison shows work and growth details side by side with Not provided for blanks', () => {
+  globalThis.document = fakeDocument();
+  try {
+    const container = { replaceChildren(child) { this.children = [child]; } };
+    renderComparison([
+      { id: 'a', company: 'A', role: 'Dev', baseSalary: 1, location: 'Seattle, WA', workArrangement: 'hybrid', officeAttendance: '2 days a week', careerGrowth: 'Mentorship' },
+      { id: 'b', company: 'B', role: 'Dev', baseSalary: 1, location: '', workArrangement: '', schedule: '  ', cultureNotes: 'Formal reviews' }
+    ], container);
+    const [offerA, offerB] = container.children[0].children;
+    assert.equal(workDetail(offerA, 'Location'), 'Seattle, WA');
+    assert.equal(workDetail(offerA, 'Work arrangement'), 'Hybrid');
+    assert.equal(workDetail(offerA, 'Office attendance'), '2 days a week');
+    assert.equal(workDetail(offerA, 'Career growth'), 'Mentorship');
+    assert.equal(workDetail(offerA, 'Culture notes'), 'Not provided');
+    assert.equal(workDetail(offerB, 'Location'), 'Not provided');
+    assert.equal(workDetail(offerB, 'Work arrangement'), 'Not provided');
+    assert.equal(workDetail(offerB, 'Schedule'), 'Not provided');
+    assert.equal(workDetail(offerB, 'Culture notes'), 'Formal reviews');
+    const labels = card => card.children.find(child => child.className === 'work-growth-list').children.filter(child => child.tag === 'dt').map(child => child.textContent);
+    assert.deepEqual(labels(offerA), labels(offerB), 'Both offers list the same details in the same order');
+  } finally {
+    delete globalThis.document;
+  }
+});
+test('fixture rejects an unknown work arrangement', async () => {
+  const sample = JSON.parse(await readFile('data/example-offers.json', 'utf8'));
+  const bad = structuredClone(sample);
+  bad.offers[0].workArrangement = 'sometimes';
+  assert.throws(() => validateSampleDocument(bad));
 });

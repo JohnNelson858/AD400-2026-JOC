@@ -42,12 +42,14 @@ h2 { font-size:28px; letter-spacing:-.5px; margin:0 0 6px; }
 .field:last-child { margin-bottom:0; }
 label { display:block; margin-bottom:7px; font-size:12px; font-weight:700; }
 .label-unit { font-weight:400; color:var(--muted); float:right; font-size:10px; letter-spacing:.4px; }
-input { width:100%; min-width:0; background:white; border:1px solid #bbc4b7; border-radius:5px; padding:11px 12px; color:var(--ink); font-size:14px; }
+input,select { width:100%; min-width:0; background:white; border:1px solid #bbc4b7; border-radius:5px; padding:11px 12px; color:var(--ink); font-size:14px; }
 input::placeholder { color:#798276; }
-input[aria-invalid="true"] { border:2px solid var(--error); }
+input[aria-invalid="true"],select[aria-invalid="true"] { border:2px solid var(--error); }
 .salary-input { position:relative; }
 .salary-input > span { position:absolute; left:13px; top:10px; color:var(--muted); }
 .salary-input input { padding-left:31px; }
+.card-subheading { margin:26px 0 14px; padding-top:18px; border-top:1px solid var(--border); font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+.work-growth-heading { margin-top:18px !important; }
 .field-help,.field-error { font-size:11px; margin:7px 0 0; }
 .field-help { color:var(--muted); }
 .field-error { color:var(--error); font-weight:700; }

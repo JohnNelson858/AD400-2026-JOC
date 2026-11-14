@@ -7,7 +7,14 @@
       "role": "Software Engineer",
       "baseSalary": 120000,
       "currency": "USD",
-      "salaryPeriod": "year"
+      "salaryPeriod": "year",
+      "location": "Seattle, WA",
+      "workArrangement": "hybrid",
+      "officeAttendance": "2 days a week in office",
+      "schedule": "Flexible hours",
+      "overtime": "Occasional on-call",
+      "careerGrowth": "Mentorship and a yearly learning budget",
+      "cultureNotes": "Small team, fast pace"
     },
     {
       "id": "b",
@@ -15,7 +22,14 @@
       "role": "Software Engineer",
       "baseSalary": 135000,
       "currency": "USD",
-      "salaryPeriod": "year"
+      "salaryPeriod": "year",
+      "location": "Bellevue, WA",
+      "workArrangement": "office",
+      "officeAttendance": "5 days a week in office",
+      "schedule": "Mon–Fri, 9 to 5",
+      "overtime": "Paid overtime",
+      "careerGrowth": "Structured promotion path",
+      "cultureNotes": "Large team, formal reviews"
     }
   ]
 }
