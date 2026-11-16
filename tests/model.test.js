@@ -241,3 +241,17 @@ test('fixture rejects an unknown work arrangement', async () => {
   bad.offers[0].workArrangement = 'sometimes';
   assert.throws(() => validateSampleDocument(bad));
 });
+test('offer schema lists every field the validator accepts and the same work arrangements', async () => {
+  const schema = JSON.parse(await readFile('data/offer-pair.schema.json', 'utf8'));
+  const offer = schema.$defs.offer;
+  assert.equal(offer.additionalProperties, false);
+  assert.deepEqual(
+    Object.keys(offer.properties).sort(),
+    ['id', 'currency', 'salaryPeriod', ...FIELD_NAMES].sort()
+  );
+  assert.deepEqual(offer.properties.workArrangement.enum, ['', ...WORK_ARRANGEMENTS]);
+  const sample = JSON.parse(await readFile('data/example-offers.json', 'utf8'));
+  for (const item of sample.offers) {
+    for (const key of Object.keys(item)) assert.ok(key in offer.properties, `Schema is missing ${key}`);
+  }
+});
