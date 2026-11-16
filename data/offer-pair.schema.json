@@ -91,6 +91,58 @@
         },
         "salaryPeriod": {
           "const": "year"
+        },
+        "healthcare": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "retirementMatch": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "vacationLeave": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "sickLeave": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "personalLeave": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "location": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "workArrangement": {
+          "enum": [
+            "",
+            "remote",
+            "hybrid",
+            "office"
+          ]
+        },
+        "officeAttendance": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "schedule": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "overtime": {
+          "type": "string",
+          "maxLength": 150
+        },
+        "careerGrowth": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "cultureNotes": {
+          "type": "string",
+          "maxLength": 300
         }
       }
     }

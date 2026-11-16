@@ -1,5 +1,6 @@
 // JOC-14: two independent records, held only in memory. No browser storage or API.
 // JOC-30: extended with healthcare, retirementMatch, and separate vacation, sick, and personal leave fields.
+// JOC-34: extended with work arrangement and career-growth details, kept as plain text (no scores or rankings).
 export const OFFER_IDS = Object.freeze(['a', 'b']);
 export const FIELD_NAMES = Object.freeze([
   'company',
@@ -9,8 +10,17 @@ export const FIELD_NAMES = Object.freeze([
   'retirementMatch',
   'vacationLeave',
   'sickLeave',
-  'personalLeave'
+  'personalLeave',
+  'location',
+  'workArrangement',
+  'officeAttendance',
+  'schedule',
+  'overtime',
+  'careerGrowth',
+  'cultureNotes'
 ]);
+// JOC-34: allowed work arrangement choices. An empty string means the user did not say.
+export const WORK_ARRANGEMENTS = Object.freeze(['remote', 'hybrid', 'office']);
 
 export function createEmptyOffer(id) {
   return {
@@ -24,7 +34,14 @@ export function createEmptyOffer(id) {
     retirementMatch: '',
     vacationLeave: '',
     sickLeave: '',
-    personalLeave: ''
+    personalLeave: '',
+    location: '',
+    workArrangement: '',
+    officeAttendance: '',
+    schedule: '',
+    overtime: '',
+    careerGrowth: '',
+    cultureNotes: ''
   };
 }
 
@@ -58,7 +75,14 @@ export function validateSampleDocument(document) {
     'retirementMatch',
     'vacationLeave',
     'sickLeave',
-    'personalLeave'
+    'personalLeave',
+    'location',
+    'workArrangement',
+    'officeAttendance',
+    'schedule',
+    'overtime',
+    'careerGrowth',
+    'cultureNotes'
   ];
   document.offers.forEach((offer, index) => {
     if (!offer || offer.id !== OFFER_IDS[index] || Object.keys(offer).some(key => !allowed.includes(key))) throw new Error('Offers must be ordered a, b and use the documented fields.');
@@ -66,6 +90,7 @@ export function validateSampleDocument(document) {
     for (const field of ['company', 'role']) {
       if (typeof offer[field] !== 'string' || !offer[field].trim() || offer[field].length > 120) throw new Error(`${field} must contain 1–120 characters.`);
     }
+    if (offer.workArrangement !== undefined && offer.workArrangement !== '' && !WORK_ARRANGEMENTS.includes(offer.workArrangement)) throw new Error('workArrangement must be remote, hybrid, or office.');
     if (typeof offer.baseSalary !== 'number' || !Number.isFinite(offer.baseSalary) || offer.baseSalary < 0 || offer.baseSalary > Number.MAX_SAFE_INTEGER / 100 || Math.abs(offer.baseSalary * 100 - Math.round(offer.baseSalary * 100)) > 0.000001) throw new Error('Salary must be a finite nonnegative amount with at most two decimal places.');
   });
   return document;
