@@ -18,6 +18,8 @@ Use `npm start`. Test at 375 px and 1280 px. Record reviewer/date/results in Jir
 - [ ] Invalid input remains present and editable; summary links focus the correct field.
 - [ ] Explicit zero salary and two-decimal salaries are accepted.
 - [ ] Two valid offers appear in the preview with the latest values.
+- [ ] Each offer's annual base salary is prominent near the top, labeled with its company/offer, and formatted consistently as USD per year; bonus and equity are not included.
+- [ ] The salary summary remains readable without horizontal overflow at both 375 px and 1280 px.
 - [ ] Editing an input hides stale results until Compare runs again.
 - [ ] Refresh returns to empty forms and no preview.
 - [ ] Storage contains no application offer entries, and network requests carry no offer details.
