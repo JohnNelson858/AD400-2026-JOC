@@ -96,6 +96,47 @@ test('comparison displays missing details consistently without treating zero as 
     delete globalThis.document;
   }
 });
+test('comparison puts labeled annual USD base salaries before secondary offer details', () => {
+  const elements = [];
+  globalThis.document = {
+    createElement(tag) {
+      const element = {
+        tag,
+        className: '',
+        textContent: '',
+        children: [],
+        append(child) { this.children.push(child); },
+        replaceChildren(child) { this.children = [child]; }
+      };
+      elements.push(element);
+      return element;
+    }
+  };
+  try {
+    const container = { replaceChildren(child) { this.children = [child]; } };
+    renderComparison([
+      { id: 'a', company: 'Northstar', role: 'Designer', baseSalary: 120000, bonus: 15000, equity: 'options' },
+      { id: 'b', company: 'Acme', role: 'Engineer', baseSalary: 135000, bonus: 25000, equity: 'shares' }
+    ], container);
+
+    const grid = container.children[0];
+    assert.equal(grid.className, 'preview-grid');
+    assert.equal(grid.children.length, 2);
+    for (const [index, card] of grid.children.entries()) {
+      assert.deepEqual(card.children.map(child => child.tag), ['p', 'h3', 'p', 'p', 'p']);
+      assert.equal(card.children[0].textContent, `Offer ${index === 0 ? 'A' : 'B'}`);
+      assert.equal(card.children[2].className, 'salary');
+      assert.equal(card.children[3].textContent, 'Annual base salary · USD / year');
+    }
+    assert.equal(grid.children[0].children[1].textContent, 'Northstar');
+    assert.equal(grid.children[0].children[2].textContent, '$120,000.00');
+    assert.equal(grid.children[1].children[1].textContent, 'Acme');
+    assert.equal(grid.children[1].children[2].textContent, '$135,000.00');
+    assert.ok(!elements.some(element => /bonus|equity|options|shares/i.test(element.textContent)));
+  } finally {
+    delete globalThis.document;
+  }
+});
 test('whitespace required labels fail and retain editable values', () => {
   const offers=good();offers[0].company='   ';offers[1].role='';
   assert.equal(validateOffers(offers).errors.length,2);
