@@ -21,6 +21,21 @@ export const FIELD_NAMES = Object.freeze([
 ]);
 // JOC-34: allowed work arrangement choices. An empty string means the user did not say.
 export const WORK_ARRANGEMENTS = Object.freeze(['remote', 'hybrid', 'office']);
+// Optional text fields with their max lengths. Shared by validateOffers and validateSampleDocument,
+// and kept in sync with maxLength in data/offer-pair.schema.json.
+export const OPTIONAL_TEXT_FIELDS = Object.freeze([
+  ['healthcare', 'healthcare description', 200],
+  ['retirementMatch', 'retirement match description', 200],
+  ['vacationLeave', 'vacation leave', 100],
+  ['sickLeave', 'sick leave', 100],
+  ['personalLeave', 'personal leave', 100],
+  ['location', 'location', 120],
+  ['officeAttendance', 'office attendance', 100],
+  ['schedule', 'schedule', 100],
+  ['overtime', 'overtime', 150],
+  ['careerGrowth', 'career growth', 300],
+  ['cultureNotes', 'culture notes', 300]
+].map(entry => Object.freeze(entry)));
 
 export function createEmptyOffer(id) {
   return {
@@ -89,6 +104,11 @@ export function validateSampleDocument(document) {
     if (offer.currency !== 'USD' || offer.salaryPeriod !== 'year') throw new Error('Use annual USD salaries.');
     for (const field of ['company', 'role']) {
       if (typeof offer[field] !== 'string' || !offer[field].trim() || offer[field].length > 120) throw new Error(`${field} must contain 1–120 characters.`);
+    }
+    // Optional text fields may be left out, but when present they must be strings within the schema limit.
+    for (const [field, , maxLen] of OPTIONAL_TEXT_FIELDS) {
+      if (offer[field] === undefined) continue;
+      if (typeof offer[field] !== 'string' || offer[field].length > maxLen) throw new Error(`${field} must be text of at most ${maxLen} characters.`);
     }
     if (offer.workArrangement !== undefined && offer.workArrangement !== '' && !WORK_ARRANGEMENTS.includes(offer.workArrangement)) throw new Error('workArrangement must be remote, hybrid, or office.');
     if (typeof offer.baseSalary !== 'number' || !Number.isFinite(offer.baseSalary) || offer.baseSalary < 0 || offer.baseSalary > Number.MAX_SAFE_INTEGER / 100 || Math.abs(offer.baseSalary * 100 - Math.round(offer.baseSalary * 100)) > 0.000001) throw new Error('Salary must be a finite nonnegative amount with at most two decimal places.');

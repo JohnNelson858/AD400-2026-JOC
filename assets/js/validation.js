@@ -1,21 +1,7 @@
 // Minimal JOC-15 boundary validation. JOC-36 can extend this shared contract.
 // JOC-30: normalizes optional benefit and leave descriptions without inventing monetary values or converting Unlimited PTO.
 // JOC-34: work and growth details are optional text; work arrangement must be one of the listed choices.
-import { OFFER_IDS, WORK_ARRANGEMENTS } from './model.js';
-
-const OPTIONAL_TEXT_FIELDS = [
-  ['healthcare', 'healthcare description', 200],
-  ['retirementMatch', 'retirement match description', 200],
-  ['vacationLeave', 'vacation leave', 100],
-  ['sickLeave', 'sick leave', 100],
-  ['personalLeave', 'personal leave', 100],
-  ['location', 'location', 120],
-  ['officeAttendance', 'office attendance', 100],
-  ['schedule', 'schedule', 100],
-  ['overtime', 'overtime', 150],
-  ['careerGrowth', 'career growth', 300],
-  ['cultureNotes', 'culture notes', 300]
-];
+import { OFFER_IDS, WORK_ARRANGEMENTS, OPTIONAL_TEXT_FIELDS } from './model.js';
 
 export function validateOffers(offers) {
   if (!Array.isArray(offers) || offers.length !== 2 || offers.some((offer, index) => offer?.id !== OFFER_IDS[index])) throw new Error('Expected independent offers a and b.');

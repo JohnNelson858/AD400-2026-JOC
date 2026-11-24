@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createOfferStore, validateSampleDocument, OFFER_IDS, FIELD_NAMES, WORK_ARRANGEMENTS } from '../assets/js/model.js';
+import { createOfferStore, validateSampleDocument, OFFER_IDS, FIELD_NAMES, WORK_ARRANGEMENTS, OPTIONAL_TEXT_FIELDS } from '../assets/js/model.js';
 import { validateOffers, normalizeOffers } from '../assets/js/validation.js';
 import { renderComparison } from '../assets/js/comparison.js';
 const good = () => [{ id:'a', company:' A ', role:' Developer ', baseSalary:'120000', currency:'USD', salaryPeriod:'year' }, { id:'b', company:'B', role:'Engineer', baseSalary:'135000', currency:'USD', salaryPeriod:'year' }];
@@ -240,6 +240,41 @@ test('fixture rejects an unknown work arrangement', async () => {
   const bad = structuredClone(sample);
   bad.offers[0].workArrangement = 'sometimes';
   assert.throws(() => validateSampleDocument(bad));
+});
+test('fixture rejects a non-string optional text field', async () => {
+  const sample = JSON.parse(await readFile('data/example-offers.json', 'utf8'));
+  const bad = structuredClone(sample);
+  bad.offers[0].careerGrowth = 123;
+  assert.throws(() => validateSampleDocument(bad), /careerGrowth/);
+});
+test('fixture rejects an optional text field over its limit', async () => {
+  const sample = JSON.parse(await readFile('data/example-offers.json', 'utf8'));
+  const bad = structuredClone(sample);
+  bad.offers[1].careerGrowth = 'x'.repeat(301);
+  assert.throws(() => validateSampleDocument(bad), /careerGrowth/);
+  const atLimit = structuredClone(sample);
+  atLimit.offers[1].careerGrowth = 'x'.repeat(300);
+  assert.doesNotThrow(() => validateSampleDocument(atLimit));
+});
+test('fixture checks type and length for every optional text field and allows omitted ones', async () => {
+  const sample = JSON.parse(await readFile('data/example-offers.json', 'utf8'));
+  for (const [field, , maxLen] of OPTIONAL_TEXT_FIELDS) {
+    const notText = structuredClone(sample);
+    notText.offers[0][field] = 42;
+    assert.throws(() => validateSampleDocument(notText), new RegExp(field), `${field} should reject non-text`);
+    const tooLong = structuredClone(sample);
+    tooLong.offers[0][field] = 'x'.repeat(maxLen + 1);
+    assert.throws(() => validateSampleDocument(tooLong), new RegExp(field), `${field} should reject more than ${maxLen} characters`);
+    const omitted = structuredClone(sample);
+    delete omitted.offers[0][field];
+    assert.doesNotThrow(() => validateSampleDocument(omitted), `${field} should be optional`);
+  }
+});
+test('validator limits match maxLength in the offer schema', async () => {
+  const schema = JSON.parse(await readFile('data/offer-pair.schema.json', 'utf8'));
+  for (const [field, , maxLen] of OPTIONAL_TEXT_FIELDS) {
+    assert.equal(schema.$defs.offer.properties[field].maxLength, maxLen, `Schema maxLength for ${field}`);
+  }
 });
 test('offer schema lists every field the validator accepts and the same work arrangements', async () => {
   const schema = JSON.parse(await readFile('data/offer-pair.schema.json', 'utf8'));
