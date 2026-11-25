@@ -1,14 +1,7 @@
 // Minimal JOC-15 boundary validation. JOC-36 can extend this shared contract.
 // JOC-30: normalizes optional benefit and leave descriptions without inventing monetary values or converting Unlimited PTO.
-import { OFFER_IDS } from './model.js';
-
-const OPTIONAL_TEXT_FIELDS = [
-  ['healthcare', 'healthcare description', 200],
-  ['retirementMatch', 'retirement match description', 200],
-  ['vacationLeave', 'vacation leave', 100],
-  ['sickLeave', 'sick leave', 100],
-  ['personalLeave', 'personal leave', 100]
-];
+// JOC-34: work and growth details are optional text; work arrangement must be one of the listed choices.
+import { OFFER_IDS, WORK_ARRANGEMENTS, OPTIONAL_TEXT_FIELDS } from './model.js';
 
 export function validateOffers(offers) {
   if (!Array.isArray(offers) || offers.length !== 2 || offers.some((offer, index) => offer?.id !== OFFER_IDS[index])) throw new Error('Expected independent offers a and b.');
@@ -29,6 +22,10 @@ export function validateOffers(offers) {
       if (typeof value !== 'string') errors.push({ id: offer.id, field, message: 'Must be text.' });
       else if (value.length > maxLen) errors.push({ id: offer.id, field, message: `Use no more than ${maxLen} characters.` });
     }
+    const arrangement = offer.workArrangement ?? '';
+    if (arrangement !== '' && !WORK_ARRANGEMENTS.includes(arrangement)) {
+      errors.push({ id: offer.id, field: 'workArrangement', message: 'Choose remote, hybrid, or in office, or leave it blank.' });
+    }
   }
   return { valid: errors.length === 0, errors };
 }
@@ -45,6 +42,13 @@ export function normalizeOffers(offers) {
     retirementMatch: (offer.retirementMatch ?? '').trim(),
     vacationLeave: (offer.vacationLeave ?? '').trim(),
     sickLeave: (offer.sickLeave ?? '').trim(),
-    personalLeave: (offer.personalLeave ?? '').trim()
+    personalLeave: (offer.personalLeave ?? '').trim(),
+    location: (offer.location ?? '').trim(),
+    workArrangement: offer.workArrangement ?? '',
+    officeAttendance: (offer.officeAttendance ?? '').trim(),
+    schedule: (offer.schedule ?? '').trim(),
+    overtime: (offer.overtime ?? '').trim(),
+    careerGrowth: (offer.careerGrowth ?? '').trim(),
+    cultureNotes: (offer.cultureNotes ?? '').trim()
   }));
 }
