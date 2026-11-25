@@ -4,10 +4,12 @@
 
 1. User edits Offer A or B in `index.html`.
 2. `app.js` updates the corresponding record in `createOfferStore()`.
-3. Compare re-reads all six inputs, including values supplied by autofill.
+3. Compare re-reads all offer fields, including values supplied by autofill.
 4. `validateOffers(offers)` returns `{ valid, errors }`. Errors contain `{ id, field, message }` for the controller's accessible UI.
 5. `normalizeOffers(offers)` trims labels and converts valid salary strings into numbers.
 6. `renderComparison(offers, container)` presents valid normalized copies. `joc:offers-ready` is dispatched on document with the two records as `event.detail` for later modules.
+7. Comparison edit actions identify offer `a` or `b`; `app.js` reloads that offer's current in-memory fields into its form controls and focuses its company field. The other offer remains untouched. Any edit captures both current forms, hides stale results, and requires Compare to validate and render again.
+8. Reset Both Offers resets the form controls and in-memory records, clears errors and comparison markup, and leaves no previous result visible.
 
 ## Offer contract
 
@@ -25,7 +27,7 @@ Empty salary is `''`, not zero. Normalized salary is a finite nonnegative **numb
 | JOC-13 | index.html, assets/css/styles.css | Preserve IDs, labels, descriptions, keyboard focus |
 | JOC-14 | assets/js/model.js | Extend records without mixing offers or persisting them |
 | JOC-15 | assets/js/app.js | Maintain Compare orchestration and event payload |
-| JOC-16 / JOC-20 | assets/js/comparison.js | Extend preview with salary summary and difference calculator |
+| JOC-16 / JOC-20 | assets/js/comparison.js | Render aligned offer details and calculate the annual base-salary difference |
 | JOC-36 | assets/js/validation.js, controller error feedback | Reuse `{ valid, errors }`; extend missing-value rules as optional fields arrive |
 | JOC-45 | Complete application | Integrate and test the whole Sprint 1 flow |
 
