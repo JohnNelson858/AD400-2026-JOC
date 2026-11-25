@@ -12,6 +12,7 @@ Red Team's CareerPath Solutions student prototype. Plain HTML, CSS, native JavaS
 - **JOC-15:** Compare captures both latest records, validates, preserves invalid entries, and sends valid records to a basic preview and the `joc:offers-ready` event.
 - **JOC-16 / JOC-20:** comparison aligns corresponding offer details, presents the exact annual base-salary difference (including equal salaries), and keeps benefits/work details descriptive without declaring an overall winner.
 - **JOC-41 / JOC-42 / JOC-43:** Edit actions reopen either offer with its current values, edits revalidate and refresh the comparison, and Reset Both Offers clears the forms, in-memory records, and result.
+- Comparison rendering and controller regression tests cover Edit A/B, invalid and valid revisions, preservation of the untouched offer, salary recomputation, and full reset.
 
 This is not the whole MVP. Extended validation/missing-value rules (JOC-36), bonus/equity, and whole-sprint integration remain team work. Jira statuses have not been changed.
 

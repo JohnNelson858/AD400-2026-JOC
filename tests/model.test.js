@@ -159,7 +159,7 @@ test('comparison aligns corresponding values and keeps qualitative offer details
     const table = comparisonTable(container);
     const rows = table.children.find(child => child.tag === 'tbody').children;
     assert.deepEqual(rows.filter(row => row.children.some(cell => cell.tag === 'td')).map(row => row.children[0].textContent), [
-      'Company or offer name', 'Job title', 'Annual base salary · USD / year',
+      'Actions', 'Company or offer name', 'Job title', 'Annual base salary · USD / year',
       'Healthcare', 'Retirement match', 'Vacation leave', 'Sick leave', 'Personal leave',
       'Location', 'Work arrangement', 'Office attendance', 'Schedule', 'Overtime', 'Career growth', 'Culture notes'
     ]);
@@ -185,9 +185,12 @@ test('comparison provides an explicit edit action for both independent offers', 
     const table = comparisonTable(container);
     const actionRow = comparisonRow(table, 'Actions');
     const buttons = actionRow.children.filter(child => child.tag === 'td').map(cell => cell.children[0]);
+    const columnHeadings = table.children.find(child => child.tag === 'thead').children[0].children;
     assert.deepEqual(buttons.map(button => button.textContent), ['Edit Offer A', 'Edit Offer B']);
     assert.deepEqual(buttons.map(button => button.dataset.offerId), ['a', 'b']);
     assert.ok(buttons.every(button => button.type === 'button' && button.dataset.action === 'edit'));
+    assert.deepEqual(columnHeadings.slice(1).map(heading => heading.textContent), ['Offer A', 'Offer B']);
+    assert.ok(columnHeadings.slice(1).every(heading => heading.className === 'offer-column'));
   } finally {
     delete globalThis.document;
   }

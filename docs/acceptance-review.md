@@ -25,6 +25,7 @@ Use `npm start`. Test at 375 px and 1280 px. Record reviewer/date/results in Jir
 - [ ] Edit Offer A and Edit Offer B each focus the selected offer with all current fields intact; the other offer remains unchanged.
 - [ ] Editing a value hides the stale comparison; submitting revalidates both offers, recomputes the difference, and refreshes the comparison.
 - [ ] Reset Both Offers clears every form field, both in-memory records, errors, and prior comparison.
+- [ ] Controller regression covers compare → edit A → invalid correction → valid recomputation → edit B → recomputation with A intact → reset.
 - [ ] Record the browser/device and ten consecutive edit-submit elapsed times; each updated result appears in under 1,000 ms.
 - [ ] The salary summary remains readable without horizontal overflow at both 375 px and 1280 px.
 - [ ] Editing an input hides stale results until Compare runs again.

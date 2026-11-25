@@ -88,15 +88,15 @@ export function renderComparison(offers, container) {
   const fieldHeading = createTableCell('th', 'Offer detail', 'col');
   const offerAHeading = createTableCell('th', 'Offer A', 'col');
   const offerBHeading = createTableCell('th', 'Offer B', 'col');
-  offerAHeading.className = 'visually-hidden';
-  offerBHeading.className = 'visually-hidden';
+  offerAHeading.className = 'offer-column';
+  offerBHeading.className = 'offer-column';
   headerRow.append(fieldHeading, offerAHeading, offerBHeading);
   head.append(headerRow);
   table.append(head);
 
   const body = document.createElement('tbody');
   const rows = [
-    ['Actions', '', '', { action: true }],
+    ['Actions', null, { action: true }],
     ['Company or offer name', offer => displayValue(offer.company)],
     ['Job title', offer => displayValue(offer.role)],
     ['Annual base salary · USD / year', offer => displayValue(offer.baseSalary, value => currency.format(value)), { salary: true }],
