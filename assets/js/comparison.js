@@ -7,18 +7,23 @@ const ARRANGEMENT_LABELS = Object.freeze({ remote: 'Remote', hybrid: 'Hybrid', o
 const displayValue = (value, format = String) => value == null || (typeof value === 'string' && !value.trim()) ? 'Not provided' : format(value);
 
 export function renderComparison(offers, container) {
-  const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+  const currency = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
   const grid = document.createElement('div');
   grid.className = 'preview-grid';
   for (const offer of offers) {
     const card = document.createElement('article');
     card.className = 'preview-card';
     const entries = [
-      ['p', 'preview-label', `Offer ${offer.id.toUpperCase()} · annual base salary`],
-      ['p', 'salary', displayValue(offer.baseSalary, value => currency.format(value))],
+      ['p', 'preview-label', `Offer ${offer.id.toUpperCase()}`],
       ['h3', '', displayValue(offer.company)],
+      ['p', 'salary', displayValue(offer.baseSalary, value => currency.format(value))],
+      ['p', 'preview-label', 'Annual base salary · USD / year'],
       ['p', '', displayValue(offer.role)],
-      ['p', 'preview-label', 'USD / year']
     ];
     for (const [tag, className, text] of entries) {
       const element = document.createElement(tag);
