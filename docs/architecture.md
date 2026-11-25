@@ -4,10 +4,12 @@
 
 1. User edits Offer A or B in `index.html`.
 2. `app.js` updates the corresponding record in `createOfferStore()`.
-3. Compare re-reads all six inputs, including values supplied by autofill.
+3. Compare re-reads all offer fields, including values supplied by autofill.
 4. `validateOffers(offers)` returns `{ valid, errors }`. Errors contain `{ id, field, message }` for the controller's accessible UI.
 5. `normalizeOffers(offers)` trims labels and converts valid salary strings into numbers.
 6. `renderComparison(offers, container)` presents valid normalized copies. `joc:offers-ready` is dispatched on document with the two records as `event.detail` for later modules.
+7. Comparison edit actions identify offer `a` or `b`; `app.js` reloads that offer's current in-memory fields into its form controls and focuses its company field. The other offer remains untouched. Any edit captures both current forms, hides stale results, and requires Compare to validate and render again.
+8. Reset Both Offers resets the form controls and in-memory records, clears errors and comparison markup, and leaves no previous result visible.
 
 ## Offer contract
 

@@ -7,10 +7,15 @@ const store = createOfferStore();
 const form = document.querySelector('#offer-form');
 const summary = document.querySelector('#error-summary');
 const comparison = document.querySelector('#comparison');
+const comparisonContent = document.querySelector('#comparison-content');
 const status = document.querySelector('#status-message');
 const examplesButton = document.querySelector('#load-examples');
+const resetButton = document.querySelector('#reset-offers');
 const inputFor = (id, field) => document.getElementById(`offer-${id}-${field}`);
 
+function clearEditTarget() {
+  for (const card of form.querySelectorAll('.offer-card')) card.classList.remove('edit-target');
+}
 function clearErrors() {
   summary.hidden = true;
   summary.replaceChildren();
@@ -27,24 +32,50 @@ function captureLatestValues() {
 function invalidatePreview() {
   if (!comparison.hidden) {
     comparison.hidden = true;
-    document.querySelector('#comparison-content').replaceChildren();
+    comparisonContent.replaceChildren();
     status.textContent = 'Offer details changed. Select Compare offers to refresh the preview.';
   }
+}
+function editOffer(id) {
+  const offer = store.getOffers().find(candidate => candidate.id === id);
+  if (!offer) throw new Error(`Unknown offer: ${id}`);
+  for (const field of FIELD_NAMES) inputFor(id, field).value = offer[field] ?? '';
+  clearEditTarget();
+  inputFor(id, 'company').closest('.offer-card').classList.add('edit-target');
+  status.textContent = `Editing Offer ${id.toUpperCase()}. Its current values are ready to revise.`;
+  inputFor(id, 'company').focus();
 }
 form.addEventListener('input', () => {
   captureLatestValues();
   clearErrors();
+  clearEditTarget();
   invalidatePreview();
+});
+comparisonContent.addEventListener('click', event => {
+  const button = event.target.closest('button[data-action="edit"]');
+  if (!button || !OFFER_IDS.includes(button.dataset.offerId)) return;
+  editOffer(button.dataset.offerId);
+});
+resetButton.addEventListener('click', () => {
+  form.reset();
+  store.clear();
+  clearErrors();
+  clearEditTarget();
+  comparison.hidden = true;
+  comparisonContent.replaceChildren();
+  status.textContent = 'Both offers and the comparison are cleared. You can start again.';
+  inputFor('a', 'company').focus();
 });
 form.addEventListener('submit', event => {
   event.preventDefault();
   captureLatestValues(); // Handles autofill and latest DOM values, not just input events.
   clearErrors();
+  clearEditTarget();
   const offers = store.getOffers();
   const result = validateOffers(offers);
   if (!result.valid) {
     comparison.hidden = true;
-    document.querySelector('#comparison-content').replaceChildren();
+    comparisonContent.replaceChildren();
     status.textContent = '';
     const heading = document.createElement('strong');
     heading.textContent = 'Please check your offer details.';
@@ -69,7 +100,7 @@ form.addEventListener('submit', event => {
     return;
   }
   const normalized = normalizeOffers(offers);
-  renderComparison(normalized, document.querySelector('#comparison-content'));
+  renderComparison(normalized, comparisonContent);
   comparison.hidden = false;
   status.textContent = 'Both offers are ready for review.';
   // Future components can listen without coupling themselves to the form markup.
@@ -101,7 +132,7 @@ function resetOnLoad() {
   store.clear();
   clearErrors();
   comparison.hidden = true;
-  document.querySelector('#comparison-content').replaceChildren();
+  comparisonContent.replaceChildren();
   status.textContent = '';
 }
 resetOnLoad();

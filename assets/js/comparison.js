@@ -36,9 +36,20 @@ function appendComparisonRow(body, label, valueA, valueB, options = {}) {
   } else {
     row.append(createTableCell('th', label, 'row'));
     for (const [index, value] of [valueA, valueB].entries()) {
-      const cell = createTableCell('td', value);
+      const cell = document.createElement('td');
       cell.dataset.offer = `Offer ${index === 0 ? 'A' : 'B'}`;
-      if (options.salary) cell.className = 'salary';
+      if (options.action) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'button-secondary';
+        button.dataset.action = 'edit';
+        button.dataset.offerId = index === 0 ? 'a' : 'b';
+        button.textContent = `Edit Offer ${index === 0 ? 'A' : 'B'}`;
+        cell.append(button);
+      } else {
+        cell.textContent = value;
+        if (options.salary) cell.className = 'salary';
+      }
       row.append(cell);
     }
   }
@@ -85,6 +96,7 @@ export function renderComparison(offers, container) {
 
   const body = document.createElement('tbody');
   const rows = [
+    ['Actions', '', '', { action: true }],
     ['Company or offer name', offer => displayValue(offer.company)],
     ['Job title', offer => displayValue(offer.role)],
     ['Annual base salary · USD / year', offer => displayValue(offer.baseSalary, value => currency.format(value)), { salary: true }],
@@ -104,7 +116,7 @@ export function renderComparison(offers, container) {
     ['Culture notes', offer => displayValue(offer.cultureNotes)]
   ];
   for (const [label, valueForOffer, options] of rows) {
-    if (options?.category) {
+    if (options?.category || options?.action) {
       appendComparisonRow(body, label, '', '', options);
     } else {
       appendComparisonRow(body, label, valueForOffer(offerA), valueForOffer(offerB), options);

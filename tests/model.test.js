@@ -69,10 +69,12 @@ test('editing one offer preserves the other, with defensive snapshots', () => {
 });
 test('clear and a fresh store start with independent empty records', () => {
   const first = createOfferStore();
-  first.updateOffer('a','baseSalary','42');
+  for (const id of OFFER_IDS) {
+    for (const field of FIELD_NAMES) first.updateOffer(id, field, `value-${field}`);
+  }
   assert.equal(createOfferStore().getOffers()[0].baseSalary,'');
   first.clear();
-  assert.ok(first.getOffers().every(o => o.company === '' && o.role === '' && o.baseSalary === ''));
+  assert.ok(first.getOffers().every(offer => FIELD_NAMES.every(field => offer[field] === '')));
 });
 test('unknown fields, IDs and non-string input are rejected', () => {
   const store = createOfferStore();
@@ -174,6 +176,25 @@ test('comparison aligns corresponding values and keeps qualitative offer details
   } finally {
     delete globalThis.document;
   }
+});
+test('comparison provides an explicit edit action for both independent offers', () => {
+  globalThis.document = fakeDocument();
+  try {
+    const container = { replaceChildren(child) { this.children = [child]; } };
+    renderComparison(good().map(offer => ({ ...offer, baseSalary: Number(offer.baseSalary) })), container);
+    const table = comparisonTable(container);
+    const actionRow = comparisonRow(table, 'Actions');
+    const buttons = actionRow.children.filter(child => child.tag === 'td').map(cell => cell.children[0]);
+    assert.deepEqual(buttons.map(button => button.textContent), ['Edit Offer A', 'Edit Offer B']);
+    assert.deepEqual(buttons.map(button => button.dataset.offerId), ['a', 'b']);
+    assert.ok(buttons.every(button => button.type === 'button' && button.dataset.action === 'edit'));
+  } finally {
+    delete globalThis.document;
+  }
+});
+test('reset control is explicit and cannot submit the offer form', async () => {
+  const html = await readFile('index.html', 'utf8');
+  assert.match(html, /<button id="reset-offers" type="button"[^>]*>Reset Both Offers<\/button>/);
 });
 test('salary difference uses exact cents, identifies either higher offer, and reports equality', () => {
   assert.deepEqual(calculateSalaryDifference(120000, 135000.25), { higherOffer: 'b', differenceCents: 1500025 });
