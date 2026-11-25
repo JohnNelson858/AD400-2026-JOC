@@ -19,6 +19,9 @@ Use `npm start`. Test at 375 px and 1280 px. Record reviewer/date/results in Jir
 - [ ] Explicit zero salary and two-decimal salaries are accepted.
 - [ ] Two valid offers appear in the preview with the latest values.
 - [ ] Each offer's annual base salary is prominent near the top, labeled with its company/offer, and formatted consistently as USD per year; bonus and equity are not included.
+- [ ] Corresponding offer fields align side by side on desktop and remain grouped with Offer A/Offer B labels on mobile.
+- [ ] The annual salary difference is correct for either offer paying more, and equal salaries are identified as equal.
+- [ ] The comparison describes salary only and does not declare an overall winning offer.
 - [ ] The salary summary remains readable without horizontal overflow at both 375 px and 1280 px.
 - [ ] Editing an input hides stale results until Compare runs again.
 - [ ] Refresh returns to empty forms and no preview.
