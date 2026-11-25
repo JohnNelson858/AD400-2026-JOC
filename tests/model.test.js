@@ -3,8 +3,42 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createOfferStore, validateSampleDocument, OFFER_IDS, FIELD_NAMES, WORK_ARRANGEMENTS, OPTIONAL_TEXT_FIELDS } from '../assets/js/model.js';
 import { validateOffers, normalizeOffers } from '../assets/js/validation.js';
-import { renderComparison } from '../assets/js/comparison.js';
+import { calculateSalaryDifference, renderComparison } from '../assets/js/comparison.js';
 const good = () => [{ id:'a', company:' A ', role:' Developer ', baseSalary:'120000', currency:'USD', salaryPeriod:'year' }, { id:'b', company:'B', role:'Engineer', baseSalary:'135000', currency:'USD', salaryPeriod:'year' }];
+const fakeDocument = () => ({
+  createElement(tag) {
+    return {
+      tag,
+      className: '',
+      textContent: '',
+      children: [],
+      dataset: {},
+      append(...children) { this.children.push(...children); },
+      replaceChildren(child) { this.children = [child]; }
+    };
+  }
+});
+const findDescendant = (element, predicate) => {
+  if (predicate(element)) return element;
+  for (const child of element.children ?? []) {
+    const match = findDescendant(child, predicate);
+    if (match) return match;
+  }
+  return undefined;
+};
+const comparisonTable = container => findDescendant(container, element => element.tag === 'table');
+const comparisonRow = (table, label) => table.children
+  .find(child => child.tag === 'tbody').children
+  .find(row => row.children.some(cell => cell.tag === 'th' && cell.textContent === label));
+const comparisonValue = (table, label, offer) => {
+  const row = comparisonRow(table, label);
+  assert.ok(row, `Missing comparison row: ${label}`);
+  return row.children.find(cell => cell.tag === 'td' && cell.dataset.offer === offer)?.textContent;
+};
+const summaryText = container => {
+  const summary = findDescendant(container, element => element.className === 'salary-summary');
+  return summary.children[1].textContent;
+};
 test('each offer card has independent inputs with matching labels and error references', async () => {
   const html = await readFile('index.html', 'utf8');
   const cards = html.match(/<fieldset\b[^>]*>[\s\S]*?<\/fieldset>/g);
@@ -88,99 +122,66 @@ test('optional blank fields do not affect validation', () => {
   assert.equal(validateOffers(offers).valid, true);
 });
 test('comparison displays missing details consistently without treating zero as missing', () => {
-  const elements = [];
-  globalThis.document = {
-    createElement(tag) {
-      const element = {
-        tag,
-        children: [],
-        append(...children) { this.children.push(...children); },
-        replaceChildren(child) { this.children = [child]; }
-      };
-      elements.push(element);
-      return element;
-    }
-  };
+  globalThis.document = fakeDocument();
   try {
     const container = { replaceChildren(child) { this.children = [child]; } };
     renderComparison([
       { id: 'a', company: '', role: null, baseSalary: undefined, healthcare: '   ', vacationLeave: 'Unlimited PTO' },
       { id: 'b', company: 'B', role: 'Engineer', baseSalary: 0, healthcare: 'Full PPO coverage', vacationLeave: '15 days' }
     ], container);
-    const text = elements.map(element => element.textContent).filter(Boolean);
-    const [offerA, offerB] = container.children[0].children;
-    const salary = card => card.children.find(child => child.className === 'salary').textContent;
-    const detail = (card, label) => {
-      const entries = card.children.find(child => child.tag === 'dl').children;
-      const index = entries.findIndex(child => child.tag === 'dt' && child.textContent === label);
-      assert.notEqual(index, -1, `Missing detail: ${label}`);
-      return entries[index + 1].textContent;
-    };
-    assert.equal(salary(offerA), 'Not provided');
-    assert.equal(offerA.children.find(child => child.tag === 'h3').textContent, 'Not provided');
-    const role = card => card.children.find(child => child.tag === 'p' && child.className === '').textContent;
-    assert.equal(role(offerA), 'Not provided');
-    assert.equal(role(offerB), 'Engineer');
-    assert.equal(detail(offerA, 'Healthcare'), 'Not provided');
-    assert.equal(detail(offerA, 'Retirement match'), 'Not provided');
-    assert.equal(detail(offerA, 'Vacation leave'), 'Unlimited PTO');
-    assert.equal(salary(offerB), '$0.00');
-    assert.equal(detail(offerB, 'Healthcare'), 'Full PPO coverage');
-    assert.equal(detail(offerB, 'Vacation leave'), '15 days');
-    assert.ok(!text.includes('undefined'));
+    const table = comparisonTable(container);
+    assert.equal(comparisonValue(table, 'Company or offer name', 'Offer A'), 'Not provided');
+    assert.equal(comparisonValue(table, 'Job title', 'Offer A'), 'Not provided');
+    assert.equal(comparisonValue(table, 'Job title', 'Offer B'), 'Engineer');
+    assert.equal(comparisonValue(table, 'Annual base salary · USD / year', 'Offer A'), 'Not provided');
+    assert.equal(comparisonValue(table, 'Annual base salary · USD / year', 'Offer B'), '$0.00');
+    assert.equal(comparisonValue(table, 'Healthcare', 'Offer A'), 'Not provided');
+    assert.equal(comparisonValue(table, 'Retirement match', 'Offer A'), 'Not provided');
+    assert.equal(comparisonValue(table, 'Vacation leave', 'Offer A'), 'Unlimited PTO');
+    assert.equal(comparisonValue(table, 'Healthcare', 'Offer B'), 'Full PPO coverage');
+    assert.equal(comparisonValue(table, 'Vacation leave', 'Offer B'), '15 days');
+    assert.equal(summaryText(container), 'The annual base-salary difference is unavailable until both salaries are provided.');
   } finally {
     delete globalThis.document;
   }
 });
-test('comparison puts labeled annual USD base salaries before secondary offer details', () => {
-  const elements = [];
-  globalThis.document = {
-    createElement(tag) {
-      const element = {
-        tag,
-        className: '',
-        textContent: '',
-        children: [],
-        append(...children) { this.children.push(...children); },
-        replaceChildren(child) { this.children = [child]; }
-      };
-      elements.push(element);
-      return element;
-    }
-  };
+test('comparison aligns corresponding values and keeps qualitative offer details descriptive', () => {
+  globalThis.document = fakeDocument();
   try {
     const container = { replaceChildren(child) { this.children = [child]; } };
     renderComparison([
-      { id: 'a', company: 'Northstar', role: 'Designer', baseSalary: 120000, bonus: 15000, equity: 'options' },
-      { id: 'b', company: 'Acme', role: 'Engineer', baseSalary: 135000, bonus: 25000, equity: 'shares' }
+      { id: 'a', company: 'Northstar', role: 'Designer', baseSalary: 120000, healthcare: 'PPO', vacationLeave: 'Unlimited PTO', location: 'Seattle', workArrangement: 'hybrid', careerGrowth: 'Mentorship', bonus: 15000, equity: 'options' },
+      { id: 'b', company: 'Acme', role: 'Engineer', baseSalary: 135000.25, healthcare: 'HMO', vacationLeave: '15 days', location: 'Portland', workArrangement: 'office', careerGrowth: 'Learning budget', bonus: 25000, equity: 'shares' }
     ], container);
 
-    const grid = container.children[0];
-    assert.equal(grid.className, 'preview-grid');
-    assert.equal(grid.children.length, 2);
-    for (const [index, card] of grid.children.entries()) {
-      const companyIndex = card.children.findIndex(child => child.tag === 'h3');
-      const salaryIndex = card.children.findIndex(child => child.className === 'salary');
-      const unitsIndex = card.children.findIndex(child => child.className === 'preview-label' && child.textContent === 'Annual base salary · USD / year');
-      const roleIndex = card.children.findIndex(child => child.tag === 'p' && child.className === '');
-      const benefitsIndex = card.children.findIndex(child => child.className === 'benefits-leave-list');
-      const workIndex = card.children.findIndex(child => child.className === 'work-growth-list');
-      assert.equal(card.children[0].textContent, `Offer ${index === 0 ? 'A' : 'B'}`);
-      assert.ok(companyIndex > 0, 'Company must follow the offer label');
-      assert.ok(salaryIndex > companyIndex, 'Salary must follow its company');
-      assert.ok(unitsIndex > salaryIndex, 'Annual USD units must follow salary');
-      assert.ok(roleIndex > unitsIndex, 'Job title must follow the salary summary');
-      assert.ok(benefitsIndex > salaryIndex, 'Benefits must remain below salary');
-      assert.ok(workIndex > salaryIndex, 'Work and growth must remain below salary');
-    }
-    assert.equal(grid.children[0].children.find(child => child.tag === 'h3').textContent, 'Northstar');
-    assert.equal(grid.children[0].children.find(child => child.className === 'salary').textContent, '$120,000.00');
-    assert.equal(grid.children[1].children.find(child => child.tag === 'h3').textContent, 'Acme');
-    assert.equal(grid.children[1].children.find(child => child.className === 'salary').textContent, '$135,000.00');
-    assert.ok(!elements.some(element => /bonus|equity|options|shares/i.test(element.textContent)));
+    const table = comparisonTable(container);
+    const rows = table.children.find(child => child.tag === 'tbody').children;
+    assert.deepEqual(rows.filter(row => row.children.some(cell => cell.tag === 'td')).map(row => row.children[0].textContent), [
+      'Company or offer name', 'Job title', 'Annual base salary · USD / year',
+      'Healthcare', 'Retirement match', 'Vacation leave', 'Sick leave', 'Personal leave',
+      'Location', 'Work arrangement', 'Office attendance', 'Schedule', 'Overtime', 'Career growth', 'Culture notes'
+    ]);
+    assert.equal(comparisonValue(table, 'Company or offer name', 'Offer A'), 'Northstar');
+    assert.equal(comparisonValue(table, 'Company or offer name', 'Offer B'), 'Acme');
+    assert.equal(comparisonValue(table, 'Annual base salary · USD / year', 'Offer A'), '$120,000.00');
+    assert.equal(comparisonValue(table, 'Annual base salary · USD / year', 'Offer B'), '$135,000.25');
+    assert.equal(comparisonValue(table, 'Healthcare', 'Offer A'), 'PPO');
+    assert.equal(comparisonValue(table, 'Healthcare', 'Offer B'), 'HMO');
+    assert.equal(comparisonValue(table, 'Work arrangement', 'Offer A'), 'Hybrid');
+    assert.equal(comparisonValue(table, 'Work arrangement', 'Offer B'), 'In office');
+    assert.match(summaryText(container), /Offer B pays \$15,000\.25 more per year in base salary/);
+    assert.ok(!JSON.stringify(container.children).match(/bonus|equity|options|shares/i));
   } finally {
     delete globalThis.document;
   }
+});
+test('salary difference uses exact cents, identifies either higher offer, and reports equality', () => {
+  assert.deepEqual(calculateSalaryDifference(120000, 135000.25), { higherOffer: 'b', differenceCents: 1500025 });
+  assert.deepEqual(calculateSalaryDifference(135000.25, 120000), { higherOffer: 'a', differenceCents: 1500025 });
+  assert.deepEqual(calculateSalaryDifference(95000.55, 95000.55), { higherOffer: null, differenceCents: 0 });
+  assert.deepEqual(calculateSalaryDifference(0, 0), { higherOffer: null, differenceCents: 0 });
+  assert.throws(() => calculateSalaryDifference(Number.NaN, 1), /finite, nonnegative/);
+  assert.throws(() => calculateSalaryDifference(-1, 1), /finite, nonnegative/);
 });
 test('whitespace required labels fail and retain editable values', () => {
   const offers=good();offers[0].company='   ';offers[1].role='';
@@ -199,17 +200,6 @@ test('fixture follows the shared contract and rejects extra fields or wrong orde
 });
 
 // JOC-32 / JOC-33 / JOC-34 / JOC-35: work arrangement and career growth.
-const fakeDocument = () => ({
-  createElement(tag) {
-    return { tag, children: [], append(...children) { this.children.push(...children); }, replaceChildren(child) { this.children = [child]; } };
-  }
-});
-const workDetail = (card, label) => {
-  const entries = card.children.find(child => child.className === 'work-growth-list').children;
-  const index = entries.findIndex(child => child.tag === 'dt' && child.textContent === label);
-  assert.notEqual(index, -1, `Missing work detail: ${label}`);
-  return entries[index + 1].textContent;
-};
 test('work arrangement offers exactly remote, hybrid, and office plus a blank choice', async () => {
   assert.deepEqual([...WORK_ARRANGEMENTS], ['remote', 'hybrid', 'office']);
   const html = await readFile('index.html', 'utf8');
@@ -271,18 +261,21 @@ test('comparison shows work and growth details side by side with Not provided fo
       { id: 'a', company: 'A', role: 'Dev', baseSalary: 1, location: 'Seattle, WA', workArrangement: 'hybrid', officeAttendance: '2 days a week', careerGrowth: 'Mentorship' },
       { id: 'b', company: 'B', role: 'Dev', baseSalary: 1, location: '', workArrangement: '', schedule: '  ', cultureNotes: 'Formal reviews' }
     ], container);
-    const [offerA, offerB] = container.children[0].children;
-    assert.equal(workDetail(offerA, 'Location'), 'Seattle, WA');
-    assert.equal(workDetail(offerA, 'Work arrangement'), 'Hybrid');
-    assert.equal(workDetail(offerA, 'Office attendance'), '2 days a week');
-    assert.equal(workDetail(offerA, 'Career growth'), 'Mentorship');
-    assert.equal(workDetail(offerA, 'Culture notes'), 'Not provided');
-    assert.equal(workDetail(offerB, 'Location'), 'Not provided');
-    assert.equal(workDetail(offerB, 'Work arrangement'), 'Not provided');
-    assert.equal(workDetail(offerB, 'Schedule'), 'Not provided');
-    assert.equal(workDetail(offerB, 'Culture notes'), 'Formal reviews');
-    const labels = card => card.children.find(child => child.className === 'work-growth-list').children.filter(child => child.tag === 'dt').map(child => child.textContent);
-    assert.deepEqual(labels(offerA), labels(offerB), 'Both offers list the same details in the same order');
+    const table = comparisonTable(container);
+    assert.equal(comparisonValue(table, 'Location', 'Offer A'), 'Seattle, WA');
+    assert.equal(comparisonValue(table, 'Work arrangement', 'Offer A'), 'Hybrid');
+    assert.equal(comparisonValue(table, 'Office attendance', 'Offer A'), '2 days a week');
+    assert.equal(comparisonValue(table, 'Career growth', 'Offer A'), 'Mentorship');
+    assert.equal(comparisonValue(table, 'Culture notes', 'Offer A'), 'Not provided');
+    assert.equal(comparisonValue(table, 'Location', 'Offer B'), 'Not provided');
+    assert.equal(comparisonValue(table, 'Work arrangement', 'Offer B'), 'Not provided');
+    assert.equal(comparisonValue(table, 'Schedule', 'Offer B'), 'Not provided');
+    assert.equal(comparisonValue(table, 'Culture notes', 'Offer B'), 'Formal reviews');
+    for (const row of table.children.find(child => child.tag === 'tbody').children) {
+      if (row.children.some(cell => cell.tag === 'td')) {
+        assert.deepEqual(row.children.filter(cell => cell.tag === 'td').map(cell => cell.dataset.offer), ['Offer A', 'Offer B']);
+      }
+    }
   } finally {
     delete globalThis.document;
   }

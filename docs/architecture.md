@@ -25,7 +25,7 @@ Empty salary is `''`, not zero. Normalized salary is a finite nonnegative **numb
 | JOC-13 | index.html, assets/css/styles.css | Preserve IDs, labels, descriptions, keyboard focus |
 | JOC-14 | assets/js/model.js | Extend records without mixing offers or persisting them |
 | JOC-15 | assets/js/app.js | Maintain Compare orchestration and event payload |
-| JOC-16 / JOC-20 | assets/js/comparison.js | Extend preview with salary summary and difference calculator |
+| JOC-16 / JOC-20 | assets/js/comparison.js | Render aligned offer details and calculate the annual base-salary difference |
 | JOC-36 | assets/js/validation.js, controller error feedback | Reuse `{ valid, errors }`; extend missing-value rules as optional fields arrive |
 | JOC-45 | Complete application | Integrate and test the whole Sprint 1 flow |
 
