@@ -1,10 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createOfferStore, validateSampleDocument } from '../assets/js/model.js';
+import { createOfferStore, validateSampleDocument, OFFER_IDS, FIELD_NAMES } from '../assets/js/model.js';
 import { validateOffers, normalizeOffers } from '../assets/js/validation.js';
 import { renderComparison } from '../assets/js/comparison.js';
 const good = () => [{ id:'a', company:' A ', role:' Developer ', baseSalary:'120000', currency:'USD', salaryPeriod:'year' }, { id:'b', company:'B', role:'Engineer', baseSalary:'135000', currency:'USD', salaryPeriod:'year' }];
+test('each offer card has independent inputs with matching labels and error references', async () => {
+  const html = await readFile('index.html', 'utf8');
+  const cards = html.match(/<fieldset\b[^>]*>[\s\S]*?<\/fieldset>/g);
+  assert.equal(cards.length, 2);
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(new Set(ids).size, ids.length, 'HTML IDs must be unique');
+  for (const [index, id] of OFFER_IDS.entries()) {
+    for (const field of FIELD_NAMES) {
+      const inputId = `offer-${id}-${field}`;
+      const input = cards[index].match(new RegExp(`<input\\b[^>]*id="${inputId}"[^>]*>`));
+      assert.ok(input, `Missing input in Offer ${id.toUpperCase()}: ${field}`);
+      assert.ok(input[0].includes(`name="${id}.${field}"`));
+      assert.ok(cards[index].includes(`<label for="${inputId}">`));
+      const references = input[0].match(/aria-describedby="([^"]+)"/)[1].split(' ');
+      assert.ok(references.includes(`${inputId}-error`));
+      for (const reference of references) assert.ok(cards[index].includes(`id="${reference}"`));
+    }
+  }
+});
 test('editing one offer preserves the other, with defensive snapshots', () => {
   const store = createOfferStore();
   store.updateOffer('a','company','A');
@@ -75,7 +94,7 @@ test('comparison displays missing details consistently without treating zero as 
       const element = {
         tag,
         children: [],
-        append(child) { this.children.push(child); },
+        append(...children) { this.children.push(...children); },
         replaceChildren(child) { this.children = [child]; }
       };
       elements.push(element);
@@ -85,12 +104,27 @@ test('comparison displays missing details consistently without treating zero as 
   try {
     const container = { replaceChildren(child) { this.children = [child]; } };
     renderComparison([
-      { id: 'a', company: '', role: null, baseSalary: undefined },
-      { id: 'b', company: 'B', role: 'Engineer', baseSalary: 0 }
+      { id: 'a', company: '', role: null, baseSalary: undefined, healthcare: '   ', vacationLeave: 'Unlimited PTO' },
+      { id: 'b', company: 'B', role: 'Engineer', baseSalary: 0, healthcare: 'Full PPO coverage', vacationLeave: '15 days' }
     ], container);
     const text = elements.map(element => element.textContent).filter(Boolean);
-    assert.equal(text.filter(value => value === 'Not provided').length, 3);
-    assert.ok(text.includes('$0.00'));
+    const [offerA, offerB] = container.children[0].children;
+    const salary = card => card.children.find(child => child.className === 'salary').textContent;
+    const detail = (card, label) => {
+      const entries = card.children.find(child => child.tag === 'dl').children;
+      const index = entries.findIndex(child => child.tag === 'dt' && child.textContent === label);
+      assert.notEqual(index, -1, `Missing detail: ${label}`);
+      return entries[index + 1].textContent;
+    };
+    assert.equal(salary(offerA), 'Not provided');
+    assert.equal(offerA.children.find(child => child.tag === 'h3').textContent, 'Not provided');
+    assert.equal(offerA.children[3].textContent, 'Not provided');
+    assert.equal(detail(offerA, 'Healthcare'), 'Not provided');
+    assert.equal(detail(offerA, 'Retirement match'), 'Not provided');
+    assert.equal(detail(offerA, 'Vacation leave'), 'Unlimited PTO');
+    assert.equal(salary(offerB), '$0.00');
+    assert.equal(detail(offerB, 'Healthcare'), 'Full PPO coverage');
+    assert.equal(detail(offerB, 'Vacation leave'), '15 days');
     assert.ok(!text.includes('undefined'));
   } finally {
     delete globalThis.document;

@@ -83,7 +83,11 @@ examplesButton.addEventListener('click', async () => {
     const response = await fetch(new URL('../../data/example-offers.json', import.meta.url), { cache: 'no-store' });
     if (!response.ok) throw new Error('Example data request failed.');
     const sample = validateSampleDocument(await response.json());
-    for (const offer of sample.offers) for (const field of FIELD_NAMES) inputFor(offer.id, field).value = String(offer[field]);
+    for (const offer of sample.offers) {
+      for (const field of FIELD_NAMES) {
+        inputFor(offer.id, field).value = offer[field] != null ? String(offer[field]) : '';
+      }
+    }
     captureLatestValues();
     clearErrors();
     invalidatePreview();

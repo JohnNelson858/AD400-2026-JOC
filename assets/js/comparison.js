@@ -1,5 +1,6 @@
-// Starter handoff for JOC-16 / JOC-20. No difference calculator or overall ranking yet.
-// Accepts normalized records, never mutates them, and renders untrusted text safely.
+// Starter handoff for JOC-16 / JOC-20.
+// JOC-31: displays healthcare, retirement match, and separate leave categories alongside base salary.
+// Missing fields display "Not provided" and Unlimited PTO remains descriptive without invented monetary values.
 const displayValue = (value, format = String) => value == null || (typeof value === 'string' && !value.trim()) ? 'Not provided' : format(value);
 
 export function renderComparison(offers, container) {
@@ -22,6 +23,26 @@ export function renderComparison(offers, container) {
       element.textContent = text;
       card.append(element);
     }
+
+    const detailsList = document.createElement('dl');
+    detailsList.className = 'benefits-leave-list';
+    const detailItems = [
+      ['Healthcare', displayValue(offer.healthcare)],
+      ['Retirement match', displayValue(offer.retirementMatch)],
+      ['Vacation leave', displayValue(offer.vacationLeave)],
+      ['Sick leave', displayValue(offer.sickLeave)],
+      ['Personal leave', displayValue(offer.personalLeave)]
+    ];
+    for (const [label, text] of detailItems) {
+      const dt = document.createElement('dt');
+      dt.className = 'preview-label';
+      dt.textContent = label;
+      const dd = document.createElement('dd');
+      dd.textContent = text;
+      detailsList.append(dt, dd);
+    }
+    card.append(detailsList);
+
     grid.append(card);
   }
   container.replaceChildren(grid);
