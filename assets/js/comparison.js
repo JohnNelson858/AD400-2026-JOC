@@ -1,83 +1,128 @@
-// Starter handoff for JOC-16 / JOC-20.
-// JOC-31: displays healthcare, retirement match, and separate leave categories alongside base salary.
-// Missing fields display "Not provided" and Unlimited PTO remains descriptive without invented monetary values.
-// JOC-35: adds a "Work & growth" list so location, arrangement, schedule, and growth notes sit side by side.
-// Text is shown exactly as entered: no scoring or ranking.
 const ARRANGEMENT_LABELS = Object.freeze({ remote: 'Remote', hybrid: 'Hybrid', office: 'In office' });
 const displayValue = (value, format = String) => value == null || (typeof value === 'string' && !value.trim()) ? 'Not provided' : format(value);
+const currency = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+export function calculateSalaryDifference(salaryA, salaryB) {
+  if (!Number.isFinite(salaryA) || !Number.isFinite(salaryB) || salaryA < 0 || salaryB < 0) {
+    throw new TypeError('Annual salaries must be finite, nonnegative numbers.');
+  }
+  const centsA = Math.round(salaryA * 100);
+  const centsB = Math.round(salaryB * 100);
+  return {
+    higherOffer: centsA === centsB ? null : centsA > centsB ? 'a' : 'b',
+    differenceCents: Math.abs(centsA - centsB)
+  };
+}
+
+function createTableCell(tag, text, scope) {
+  const cell = document.createElement(tag);
+  cell.textContent = text;
+  if (scope) cell.scope = scope;
+  return cell;
+}
+
+function appendComparisonRow(body, label, valueA, valueB, options = {}) {
+  const row = document.createElement('tr');
+  if (options.category) {
+    row.className = 'comparison-category';
+    const heading = createTableCell('th', label, 'row');
+    heading.colSpan = 3;
+    row.append(heading);
+  } else {
+    row.append(createTableCell('th', label, 'row'));
+    for (const [index, value] of [valueA, valueB].entries()) {
+      const cell = document.createElement('td');
+      cell.dataset.offer = `Offer ${index === 0 ? 'A' : 'B'}`;
+      if (options.action) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'button-secondary';
+        button.dataset.action = 'edit';
+        button.dataset.offerId = index === 0 ? 'a' : 'b';
+        button.textContent = `Edit Offer ${index === 0 ? 'A' : 'B'}`;
+        cell.append(button);
+      } else {
+        cell.textContent = value;
+        if (options.salary) cell.className = 'salary';
+      }
+      row.append(cell);
+    }
+  }
+  body.append(row);
+}
 
 export function renderComparison(offers, container) {
-  const currency = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-  const grid = document.createElement('div');
-  grid.className = 'preview-grid';
-  for (const offer of offers) {
-    const card = document.createElement('article');
-    card.className = 'preview-card';
-    const entries = [
-      ['p', 'preview-label', `Offer ${offer.id.toUpperCase()}`],
-      ['h3', '', displayValue(offer.company)],
-      ['p', 'salary', displayValue(offer.baseSalary, value => currency.format(value))],
-      ['p', 'preview-label', 'Annual base salary · USD / year'],
-      ['p', '', displayValue(offer.role)],
-    ];
-    for (const [tag, className, text] of entries) {
-      const element = document.createElement(tag);
-      element.className = className;
-      element.textContent = text;
-      card.append(element);
-    }
+  const [offerA, offerB] = offers;
+  const result = document.createElement('div');
+  result.className = 'comparison-result';
 
-    const detailsList = document.createElement('dl');
-    detailsList.className = 'benefits-leave-list';
-    const detailItems = [
-      ['Healthcare', displayValue(offer.healthcare)],
-      ['Retirement match', displayValue(offer.retirementMatch)],
-      ['Vacation leave', displayValue(offer.vacationLeave)],
-      ['Sick leave', displayValue(offer.sickLeave)],
-      ['Personal leave', displayValue(offer.personalLeave)]
-    ];
-    for (const [label, text] of detailItems) {
-      const dt = document.createElement('dt');
-      dt.className = 'preview-label';
-      dt.textContent = label;
-      const dd = document.createElement('dd');
-      dd.textContent = text;
-      detailsList.append(dt, dd);
-    }
-    card.append(detailsList);
-
-    const workHeading = document.createElement('p');
-    workHeading.className = 'preview-label work-growth-heading';
-    workHeading.textContent = 'Work & growth';
-    card.append(workHeading);
-
-    const workList = document.createElement('dl');
-    workList.className = 'work-growth-list';
-    const workItems = [
-      ['Location', displayValue(offer.location)],
-      ['Work arrangement', displayValue(offer.workArrangement, value => ARRANGEMENT_LABELS[value] ?? value)],
-      ['Office attendance', displayValue(offer.officeAttendance)],
-      ['Schedule', displayValue(offer.schedule)],
-      ['Overtime', displayValue(offer.overtime)],
-      ['Career growth', displayValue(offer.careerGrowth)],
-      ['Culture notes', displayValue(offer.cultureNotes)]
-    ];
-    for (const [label, text] of workItems) {
-      const dt = document.createElement('dt');
-      dt.className = 'preview-label';
-      dt.textContent = label;
-      const dd = document.createElement('dd');
-      dd.textContent = text;
-      workList.append(dt, dd);
-    }
-    card.append(workList);
-
-    grid.append(card);
+  const summary = document.createElement('section');
+  summary.className = 'salary-summary';
+  const summaryHeading = document.createElement('h3');
+  summaryHeading.textContent = 'Annual base-salary difference';
+  const summaryText = document.createElement('p');
+  if (Number.isFinite(offerA.baseSalary) && Number.isFinite(offerB.baseSalary)) {
+    const difference = calculateSalaryDifference(offerA.baseSalary, offerB.baseSalary);
+    summaryText.textContent = difference.higherOffer === null
+      ? 'The annual base salaries are equal.'
+      : `Offer ${difference.higherOffer.toUpperCase()} pays ${currency.format(difference.differenceCents / 100)} more per year in base salary.`;
+  } else {
+    summaryText.textContent = 'The annual base-salary difference is unavailable until both salaries are provided.';
   }
-  container.replaceChildren(grid);
+  summary.append(summaryHeading, summaryText);
+  result.append(summary);
+
+  const table = document.createElement('table');
+  table.className = 'comparison-table';
+  const caption = document.createElement('caption');
+  caption.textContent = 'Offer details compared side by side';
+  table.append(caption);
+
+  const head = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  const fieldHeading = createTableCell('th', 'Offer detail', 'col');
+  const offerAHeading = createTableCell('th', 'Offer A', 'col');
+  const offerBHeading = createTableCell('th', 'Offer B', 'col');
+  offerAHeading.className = 'offer-column';
+  offerBHeading.className = 'offer-column';
+  headerRow.append(fieldHeading, offerAHeading, offerBHeading);
+  head.append(headerRow);
+  table.append(head);
+
+  const body = document.createElement('tbody');
+  const rows = [
+    ['Actions', null, { action: true }],
+    ['Company or offer name', offer => displayValue(offer.company)],
+    ['Job title', offer => displayValue(offer.role)],
+    ['Annual base salary · USD / year', offer => displayValue(offer.baseSalary, value => currency.format(value)), { salary: true }],
+    ['Benefits & leave', null, { category: true }],
+    ['Healthcare', offer => displayValue(offer.healthcare)],
+    ['Retirement match', offer => displayValue(offer.retirementMatch)],
+    ['Vacation leave', offer => displayValue(offer.vacationLeave)],
+    ['Sick leave', offer => displayValue(offer.sickLeave)],
+    ['Personal leave', offer => displayValue(offer.personalLeave)],
+    ['Work & growth', null, { category: true }],
+    ['Location', offer => displayValue(offer.location)],
+    ['Work arrangement', offer => displayValue(offer.workArrangement, value => ARRANGEMENT_LABELS[value] ?? value)],
+    ['Office attendance', offer => displayValue(offer.officeAttendance)],
+    ['Schedule', offer => displayValue(offer.schedule)],
+    ['Overtime', offer => displayValue(offer.overtime)],
+    ['Career growth', offer => displayValue(offer.careerGrowth)],
+    ['Culture notes', offer => displayValue(offer.cultureNotes)]
+  ];
+  for (const [label, valueForOffer, options] of rows) {
+    if (options?.category || options?.action) {
+      appendComparisonRow(body, label, '', '', options);
+    } else {
+      appendComparisonRow(body, label, valueForOffer(offerA), valueForOffer(offerB), options);
+    }
+  }
+  table.append(body);
+  result.append(table);
+  container.replaceChildren(result);
 }

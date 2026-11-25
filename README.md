@@ -10,8 +10,11 @@ Red Team's CareerPath Solutions student prototype. Plain HTML, CSS, native JavaS
 - **JOC-12 / JOC-13:** two labeled, keyboard-accessible offer forms, annual USD salary fields, mobile layout, and visible focus.
 - **JOC-14:** separate in-memory records updated on input. No localStorage, sessionStorage, cookies, offer uploads, or server persistence. Refresh starts empty.
 - **JOC-15:** Compare captures both latest records, validates, preserves invalid entries, and sends valid records to a basic preview and the `joc:offers-ready` event.
+- **JOC-16 / JOC-20:** comparison aligns corresponding offer details, presents the exact annual base-salary difference (including equal salaries), and keeps benefits/work details descriptive without declaring an overall winner.
+- **JOC-41 / JOC-42 / JOC-43:** Edit actions reopen either offer with its current values, edits revalidate and refresh the comparison, and Reset Both Offers clears the forms, in-memory records, and result.
+- Comparison rendering and controller regression tests cover Edit A/B, invalid and valid revisions, preservation of the untouched offer, salary recomputation, and full reset.
 
-This is the first part of the application, not the whole MVP. Salary-difference calculations (JOC-20), complete salary presentation (JOC-16), extended validation/missing-value rules (JOC-36), benefits/bonus/equity, edit/reset interactions, and whole-sprint integration remain team work. The minimal validation and preview are integration starting points, not claims that those tickets are finished. Jira statuses have not been changed.
+This is not the whole MVP. Extended validation/missing-value rules (JOC-36), bonus/equity, and whole-sprint integration remain team work. Jira statuses have not been changed.
 
 ## Start locally on Windows
 
