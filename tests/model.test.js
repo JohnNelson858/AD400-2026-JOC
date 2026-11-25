@@ -118,7 +118,9 @@ test('comparison displays missing details consistently without treating zero as 
     };
     assert.equal(salary(offerA), 'Not provided');
     assert.equal(offerA.children.find(child => child.tag === 'h3').textContent, 'Not provided');
-    assert.equal(offerA.children[3].textContent, 'Not provided');
+    const role = card => card.children.find(child => child.tag === 'p' && child.className === '').textContent;
+    assert.equal(role(offerA), 'Not provided');
+    assert.equal(role(offerB), 'Engineer');
     assert.equal(detail(offerA, 'Healthcare'), 'Not provided');
     assert.equal(detail(offerA, 'Retirement match'), 'Not provided');
     assert.equal(detail(offerA, 'Vacation leave'), 'Unlimited PTO');
@@ -139,7 +141,7 @@ test('comparison puts labeled annual USD base salaries before secondary offer de
         className: '',
         textContent: '',
         children: [],
-        append(child) { this.children.push(child); },
+        append(...children) { this.children.push(...children); },
         replaceChildren(child) { this.children = [child]; }
       };
       elements.push(element);
@@ -157,15 +159,24 @@ test('comparison puts labeled annual USD base salaries before secondary offer de
     assert.equal(grid.className, 'preview-grid');
     assert.equal(grid.children.length, 2);
     for (const [index, card] of grid.children.entries()) {
-      assert.deepEqual(card.children.map(child => child.tag), ['p', 'h3', 'p', 'p', 'p']);
+      const companyIndex = card.children.findIndex(child => child.tag === 'h3');
+      const salaryIndex = card.children.findIndex(child => child.className === 'salary');
+      const unitsIndex = card.children.findIndex(child => child.className === 'preview-label' && child.textContent === 'Annual base salary · USD / year');
+      const roleIndex = card.children.findIndex(child => child.tag === 'p' && child.className === '');
+      const benefitsIndex = card.children.findIndex(child => child.className === 'benefits-leave-list');
+      const workIndex = card.children.findIndex(child => child.className === 'work-growth-list');
       assert.equal(card.children[0].textContent, `Offer ${index === 0 ? 'A' : 'B'}`);
-      assert.equal(card.children[2].className, 'salary');
-      assert.equal(card.children[3].textContent, 'Annual base salary · USD / year');
+      assert.ok(companyIndex > 0, 'Company must follow the offer label');
+      assert.ok(salaryIndex > companyIndex, 'Salary must follow its company');
+      assert.ok(unitsIndex > salaryIndex, 'Annual USD units must follow salary');
+      assert.ok(roleIndex > unitsIndex, 'Job title must follow the salary summary');
+      assert.ok(benefitsIndex > salaryIndex, 'Benefits must remain below salary');
+      assert.ok(workIndex > salaryIndex, 'Work and growth must remain below salary');
     }
-    assert.equal(grid.children[0].children[1].textContent, 'Northstar');
-    assert.equal(grid.children[0].children[2].textContent, '$120,000.00');
-    assert.equal(grid.children[1].children[1].textContent, 'Acme');
-    assert.equal(grid.children[1].children[2].textContent, '$135,000.00');
+    assert.equal(grid.children[0].children.find(child => child.tag === 'h3').textContent, 'Northstar');
+    assert.equal(grid.children[0].children.find(child => child.className === 'salary').textContent, '$120,000.00');
+    assert.equal(grid.children[1].children.find(child => child.tag === 'h3').textContent, 'Acme');
+    assert.equal(grid.children[1].children.find(child => child.className === 'salary').textContent, '$135,000.00');
     assert.ok(!elements.some(element => /bonus|equity|options|shares/i.test(element.textContent)));
   } finally {
     delete globalThis.document;
