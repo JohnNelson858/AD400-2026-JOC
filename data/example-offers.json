@@ -7,7 +7,10 @@
       "role": "Software Engineer",
       "baseSalary": 120000,
       "currency": "USD",
-      "salaryPeriod": "year"
+      "salaryPeriod": "year",
+      "healthcare": "Medical and dental coverage",
+      "retirementMatch": "4% match",
+      "vacationLeave": "Unlimited PTO"
     },
     {
       "id": "b",
@@ -15,7 +18,10 @@
       "role": "Software Engineer",
       "baseSalary": 135000,
       "currency": "USD",
-      "salaryPeriod": "year"
+      "salaryPeriod": "year",
+      "retirementMatch": "6% match",
+      "vacationLeave": "15 days",
+      "sickLeave": "5 days"
     }
   ]
 }

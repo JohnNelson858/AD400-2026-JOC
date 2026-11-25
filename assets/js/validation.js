@@ -1,14 +1,6 @@
 // Minimal JOC-15 boundary validation. JOC-36 can extend this shared contract.
 // JOC-30: normalizes optional benefit and leave descriptions without inventing monetary values or converting Unlimited PTO.
-import { OFFER_IDS } from './model.js';
-
-const OPTIONAL_TEXT_FIELDS = [
-  ['healthcare', 'healthcare description', 200],
-  ['retirementMatch', 'retirement match description', 200],
-  ['vacationLeave', 'vacation leave', 100],
-  ['sickLeave', 'sick leave', 100],
-  ['personalLeave', 'personal leave', 100]
-];
+import { OFFER_IDS, OPTIONAL_OFFER_FIELDS } from './model.js';
 
 export function validateOffers(offers) {
   if (!Array.isArray(offers) || offers.length !== 2 || offers.some((offer, index) => offer?.id !== OFFER_IDS[index])) throw new Error('Expected independent offers a and b.');
@@ -24,7 +16,7 @@ export function validateOffers(offers) {
     if (typeof raw !== 'string' || !raw.trim() || !Number.isFinite(amount) || amount < 0 || amount > Number.MAX_SAFE_INTEGER / 100 || !/^\d+(?:\.\d{1,2})?$/.test(raw.trim())) {
       errors.push({ id: offer.id, field: 'baseSalary', message: 'Enter a nonnegative annual salary using numbers and up to two decimal places.' });
     }
-    for (const [field, , maxLen] of OPTIONAL_TEXT_FIELDS) {
+    for (const [field, maxLen] of Object.entries(OPTIONAL_OFFER_FIELDS)) {
       const value = offer[field] ?? '';
       if (typeof value !== 'string') errors.push({ id: offer.id, field, message: 'Must be text.' });
       else if (value.length > maxLen) errors.push({ id: offer.id, field, message: `Use no more than ${maxLen} characters.` });
